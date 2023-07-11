@@ -105,20 +105,20 @@ contract BetTest is Test {
         vm.stopPrank();
     }
 
-    function testCloseBet() public {
-        bool long = true;
-        uint64 betAmount = 1e18;
-        uint32 expiry = uint32(block.timestamp + UNIT_TEST_EXPIRY_TIME);
-        uint32 closingTime = uint32(block.timestamp + UNIT_TEST_CLOSING_TIME);
+    function testCloseBet(bool long, uint32 betAmount, uint16 utExpiry, uint16 utClosing, uint joiningTime) public {
+        vm.assume(betAmount>0);
+        vm.assume(utExpiry<utClosing && joiningTime<utExpiry);
+        uint32 expiry = uint32(block.timestamp + utExpiry);
+        uint32 closingTime = uint32(block.timestamp + utClosing);
         uint256 betIndex = _openBet(long, betAmount, expiry, closingTime, MOCK_ADDR_1);
 
         // Increasing some time
-        vm.warp(block.timestamp + 1000);
+        vm.warp(block.timestamp + joiningTime);
 
         uint256 openingPrice = _joinBet(betIndex, betAmount, MOCK_ADDR_2);
 
         // Increasing time to exceed closingTime
-        vm.warp(block.timestamp + UNIT_TEST_CLOSING_TIME);
+        vm.warp(block.timestamp + utClosing);
 
         _closeBet(betIndex, openingPrice, betAmount, MOCK_ADDR_1, MOCK_ADDR_2, long);
     }
