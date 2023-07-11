@@ -36,42 +36,48 @@ contract BetTest is Test {
         usdc.mint(1e24);
     }
 
+    // Test the opening of a bet
     function testOpenBet(bool long, uint64 betAmount, uint16 utExpiry, uint16 utClosing) public {
         vm.assume(betAmount>0);
         vm.assume(utClosing>=utExpiry);
         uint32 expiry = uint32(block.timestamp + utExpiry);
         uint32 closingTime = uint32(block.timestamp + utClosing);
+        // Opening a bet and checking if all parameters are correct
         _openBet(long, betAmount, expiry, closingTime, MOCK_ADDR_1);
     }
 
+    // Test the opening of a bet with invalid expiry time
     function testOpenBet_InvalidExpiryTime(bool long, uint64 betAmount, uint16 utExpiry, uint16 utClosing) public {
         vm.assume(betAmount>0);
         vm.assume(utClosing<utExpiry);
         uint32 expiry = uint32(block.timestamp + utExpiry);
         uint32 closingTime = uint32(block.timestamp + utClosing);
+        // Trying to open a bet with invalid expiry time
         _openBet(long, betAmount, expiry, closingTime, MOCK_ADDR_1);
     }
 
+    // Test the joining of a bet
     function testJoinBet(bool long, uint64 betAmount, uint16 utExpiry, uint16 utClosing, uint16 joinTime) public {
         vm.assume(betAmount>0);
         vm.assume(utClosing>=utExpiry && joinTime<=utExpiry);
         uint32 expiry = uint32(block.timestamp + utExpiry);
         uint32 closingTime = uint32(block.timestamp + utClosing);
+        // Opening a bet and then joining it
         uint256 betIndex = _openBet(long, betAmount, expiry, closingTime, MOCK_ADDR_1);
-
-        // Increasing some time
+            // Increasing some time
         vm.warp(block.timestamp+joinTime);
         _joinBet(betIndex, betAmount, MOCK_ADDR_2);
     }
 
+    // Test the joining of a bet after it has expired
     function testJoinBetAfterExpiry(bool long, uint64 betAmount, uint16 utExpiry, uint16 utClosing, uint16 joinTime) public {
         vm.assume(betAmount>0);
         vm.assume(utClosing>=utExpiry && joinTime > utExpiry);
         uint32 expiry = uint32(block.timestamp + utExpiry);
         uint32 closingTime = uint32(block.timestamp + utClosing);
+        // Opening a bet and then trying to join it after it has expired
         uint256 betIndex = _openBet(long, betAmount, expiry, closingTime, MOCK_ADDR_1);
-
-        // Increasing time to exceed expiry
+            // Increasing time to exceed expiry
         vm.warp(block.timestamp + joinTime);
 
         vm.startPrank(MOCK_ADDR_2);
@@ -81,11 +87,13 @@ contract BetTest is Test {
         vm.stopPrank();
     }
 
+    // Test the joining of a bet after it has been closed
     function testJoinBetAfterBetClosed() public {
         bool long = true;
         uint64 betAmount = 1e18;
         uint32 expiry = uint32(block.timestamp + UNIT_TEST_EXPIRY_TIME);
         uint32 closingTime = uint32(block.timestamp + UNIT_TEST_CLOSING_TIME);
+        // Opening a bet, joining it and then trying to join it again after it has been closed
         uint256 betIndex = _openBet(long, betAmount, expiry, closingTime, MOCK_ADDR_1);
 
         // Increasing some time
@@ -105,24 +113,23 @@ contract BetTest is Test {
         vm.stopPrank();
     }
 
+    // Test the closing of a bet
     function testCloseBet(bool long, uint32 betAmount, uint16 utExpiry, uint16 utClosing, uint joiningTime) public {
         vm.assume(betAmount>0);
         vm.assume(utExpiry<utClosing && joiningTime<utExpiry);
         uint32 expiry = uint32(block.timestamp + utExpiry);
         uint32 closingTime = uint32(block.timestamp + utClosing);
+        // Opening a bet, joining it and then closing it
         uint256 betIndex = _openBet(long, betAmount, expiry, closingTime, MOCK_ADDR_1);
-
         // Increasing some time
         vm.warp(block.timestamp + joiningTime);
-
         uint256 openingPrice = _joinBet(betIndex, betAmount, MOCK_ADDR_2);
-
         // Increasing time to exceed closingTime
         vm.warp(block.timestamp + utClosing);
-
         _closeBet(betIndex, openingPrice, betAmount, MOCK_ADDR_1, MOCK_ADDR_2, long);
     }
 
+    // Test the closing of a bet after it has been closed
     function testCLoseBetAfterBetClosed() public {
         bool long = true;
         uint64 betAmount = 1e18;
