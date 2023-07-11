@@ -34,6 +34,8 @@ contract Bet {
 
     function openBet(bool _isLong, uint64 _betAmount, uint32 _expirationTime, uint32 _closingTime) external {
         escrow.deposit(msg.sender, _betAmount);
+        require(_expirationTime<=_closingTime,"Expiration time should be less than or equal to closing time");
+        require(_betAmount>0, "Bet amount should be greater than zero");
         bets.push(BetStruct(msg.sender, address(0), 0, _betAmount, _expirationTime, _closingTime, _isLong, false));
         emit BetOpened(bets.length - 1, msg.sender, _betAmount, _isLong, _expirationTime, _closingTime);
     }
@@ -67,5 +69,9 @@ contract Bet {
         require(betIndex < bets.length, "Bet does not exist");
         BetStruct storage bet = bets[betIndex];
         return (bet.userA, bet.userB, bet.btcOpenPrice, bet.betAmount, bet.expirationTime, bet.closingTime, bet.isLong, bet.active);
+    }
+
+    function totalBets() external view returns(uint256) {
+        return bets.length;
     }
 }
