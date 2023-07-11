@@ -1,0 +1,131 @@
+package liquidationbot
+
+import (
+	"container/heap"
+	"fmt"
+	"math/big"
+	"os"
+	"sync"
+	"time"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/m/v2/db"
+	"github.com/m/v2/db/models"
+	"github.com/m/v2/watchers/abi/bet"
+)
+
+type BetCover struct {
+	Bet   *models.Bet
+	index int
+}
+
+type PriorityQueueShort []*BetCover
+
+var priorityQueueShort PriorityQueueShort
+
+func (pq PriorityQueueShort) Len() int { return len(pq) }
+
+func (pq PriorityQueueShort) Less(i, j int) bool {
+	// We want Pop to give us the highest, not lowest, priority so we use greater than here.
+	return pq[i].Bet.LiquidationTime.After(pq[j].Bet.LiquidationTime)
+}
+
+func (pq PriorityQueueShort) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+	pq[i].index = i
+	pq[j].index = j
+}
+
+func (pq *PriorityQueueShort) Peek() *BetCover {
+	if len(*pq) == 0 {
+		return nil
+	}
+	return (*pq)[0]
+}
+
+func (pq *PriorityQueueShort) Push(x any) {
+	n := len(*pq)
+	item := x.(*BetCover)
+	item.index = n
+	*pq = append(*pq, item)
+}
+
+func (pq *PriorityQueueShort) Pop() any {
+	old := *pq
+	n := len(old)
+	item := old[n-1]
+	old[n-1] = nil  // avoid memory leak
+	item.index = -1 // for safety
+	*pq = old[0 : n-1]
+	return item
+}
+
+func (pq *PriorityQueueShort) update(item *BetCover) {
+	heap.Fix(pq, item.index)
+}
+
+func InitializeLiquidationBot(wg sync.WaitGroup) {
+	pq, err := db.PostgresDBGlobalInstance.GetBetsSortedByPriority([]models.BetStatus{models.BetStatusPlaced})
+	if err != nil {
+		fmt.Println("Cannot get bets priority queue: %s", err)
+		os.Exit(1)
+	}
+	fmt.Println(len(pq))
+	client, err := ethclient.Dial("wss://sepolia.infura.io/ws/v3/52de0dea37b94c4684910ca92e127cf3")
+	betContract, err := bet.NewBet(common.HexToAddress("0x5e01F296B26743BEFeD9A213426f593E04346ca3"), client)
+
+	if err != nil {
+		fmt.Println("Cannot get contract")
+		os.Exit(1)
+	}
+	priorityQueueShort = make(PriorityQueueShort, len(pq))
+	fmt.Println(len(pq))
+	for index, value := range pq {
+		priorityQueueShort[index] = &BetCover{
+			Bet:   value,
+			index: index,
+		}
+	}
+	fmt.Println(len(priorityQueueShort))
+	heap.Init(&priorityQueueShort)
+
+	Run(betContract)
+
+	wg.Done()
+}
+
+func Run(betContract *bet.Bet) {
+	for {
+		fmt.Println(priorityQueueShort.Peek().Bet.BetID)
+		fmt.Println(len(priorityQueueShort))
+		fmt.Println(" ")
+		for _, btc := range priorityQueueShort {
+			fmt.Print(string(btc.Bet.BetID) + " ")
+		}
+		fmt.Println(" ")
+		if priorityQueueShort.Peek().Bet.LiquidationTime.Before(time.Now()) {
+			betContract.CloseBet(&bind.TransactOpts{
+				From:   common.HexToAddress("0xE8eADfc7a6186a0c16FA94Ea93EC618897AB071E"),
+				Signer: SignerFn,
+			}, big.NewInt(int64(priorityQueueShort.Peek().Bet.BetID)))
+			//fmt.Println(priorityQueueShort.Pop().Bet.BetID)
+		}
+	}
+}
+
+func AddToPriorityQueue(bet *models.Bet) {
+	newBet := &BetCover{
+		Bet: bet,
+	}
+	priorityQueueShort.Push(newBet)
+	//priorityQueueShort.update(newBet)
+}
+
+func SignerFn(address common.Address, tx *types.Transaction) (*types.Transaction, error) {
+	prvk, _ := crypto.HexToECDSA("ec02995cbf41e5971619117c6aaa9f55cb46d085eff3deb963e7d9f1c92ea683")
+	return types.SignTx(tx, types.NewEIP155Signer(big.NewInt(43113)), prvk)
+}

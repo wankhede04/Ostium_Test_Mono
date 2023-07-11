@@ -1,0 +1,18 @@
+{
+    "db": {
+        "host": "<host>",
+        "port": "5432",
+        "ssl_mode": "disable",
+        "driver": "postgres",
+        "db_name": "postgres",
+        "user": "<user>",
+        "password": "<password>"
+    },
+    "monitor_bot": {
+        "private_key": ""
+    },
+    "watcher": {
+        "rpc": "<your-rpc-url>",
+        "contract": "0x5e01F296B26743BEFeD9A213426f593E04346ca3"
+    }
+}
