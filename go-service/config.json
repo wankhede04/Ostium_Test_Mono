@@ -1,21 +1,22 @@
 {
     "db": {
-        "host": "localhost",
-        "port": "5432",
-        "ssl_mode": "disable",
-        "driver": "postgres",
-        "db_name": "postgres",
-        "user": "postgres",
-        "password": "qod@123"
+        "host": <host address string>,
+        "port": <port number string>,
+        "ssl_mode": <ssl mode for db>,
+        "driver": <driver for db>,
+        "db_name": <name of db>,
+        "user": <name of user for db>,
+        "password": <password for user>
     },
     "monitor_bot": {
-        "private_key_liquidator": "ec02995cbf41e5971619117c6aaa9f55cb46d085eff3deb963e7d9f1c92ea683",
-        "public_key_liquidator": "0xE8eADfc7a6186a0c16FA94Ea93EC618897AB071E",
-        "contract": "0x5e01F296B26743BEFeD9A213426f593E04346ca3",
-        "rpc": "wss://sepolia.infura.io/ws/v3/52de0dea37b94c4684910ca92e127cf3"
+        "private_key_liquidator": <private key for liquidator>,
+        "public_key_liquidator": <address of liquidator>,
+        "contract": <address of bet contract>,
+        "rpc": <rpc node url with web socket>
     },
     "watcher": {
-        "rpc": "wss://sepolia.infura.io/ws/v3/52de0dea37b94c4684910ca92e127cf3",
-        "contract": "0x5e01F296B26743BEFeD9A213426f593E04346ca3"
+        "rpc": <rpc node url>,
+        "contract": <address of bet contract>,
+        "block_number": <block number to watch events from>
     }
 }
