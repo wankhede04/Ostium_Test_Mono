@@ -2,8 +2,9 @@ package watchers
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"math/big"
+	"os"
 	"sync"
 
 	"github.com/ethereum/go-ethereum"
@@ -15,10 +16,15 @@ import (
 	eventhandlers "github.com/m/v2/event-handlers"
 )
 
-func InitializeWatcher(wg sync.WaitGroup) {
+func InitializeWatcher(wg *sync.WaitGroup) {
 	config := config.ReadWatcherConfig()
 
 	client, err := ethclient.Dial(config.RPC)
+	if err != nil {
+		fmt.Printf("Cannot connect to RPC: %s", err)
+		os.Exit(1)
+	}
+
 	contractAddress := common.HexToAddress(config.Contract)
 	query := ethereum.FilterQuery{
 		FromBlock: big.NewInt(3870791),
@@ -28,7 +34,8 @@ func InitializeWatcher(wg sync.WaitGroup) {
 	logs := make(chan types.Log)
 	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Cannot subscripbe to events: %s", err)
+		os.Exit(1)
 	}
 
 	WatchEvents(sub, logs)
@@ -47,19 +54,20 @@ func WatchEvents(sub ethereum.Subscription, logs chan types.Log) {
 	BetClosedSig := "BetClosed(uint256,address,uint256)"
 	BetClosedSigHash := crypto.Keccak256Hash([]byte(BetClosedSig))
 
+	fmt.Println("Bet watcher is Running")
+
 	for {
-		println(BetOpenedSigHash.Hex())
-		println(BetJoinedSigHash.Hex())
-		println(BetClosedSigHash.Hex())
 		select {
 		case vLog := <-logs:
-			println("Inside")
 			switch vLog.Topics[0].Hex() {
 			case BetOpenedSigHash.Hex():
+				fmt.Println("Recieved Opened bet")
 				eventhandlers.BetInitializedHandler(vLog)
 			case BetJoinedSigHash.Hex():
+				fmt.Println("Recieved Joined bet")
 				eventhandlers.BetJoinHandler(vLog)
 			case BetClosedSigHash.Hex():
+				fmt.Println("Recieved Closed bet")
 				eventhandlers.BetClosedHandler(vLog)
 			}
 		}

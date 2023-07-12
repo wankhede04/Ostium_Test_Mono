@@ -14,7 +14,7 @@ func main() {
 	db.InitializeDB()
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go watchers.InitializeWatcher(wg)
-	go liquidationbot.InitializeLiquidationBot(wg)
+	go watchers.InitializeWatcher(&wg)
+	go liquidationbot.InitializeLiquidationBot(&wg)
 	wg.Wait()
 }

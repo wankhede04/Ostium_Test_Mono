@@ -16,9 +16,10 @@ import (
 func BetInitializedHandler(vLog types.Log) {
 	betContractAbi, err := abi.JSON(strings.NewReader(bet.BetABI))
 	if err != nil {
-		fmt.Println("Cannot get abi of contract: %s", err)
+		fmt.Printf("Cannot get abi of contract: %s", err)
 		os.Exit(1)
 	}
+
 	betOpenedEvent := bet.BetBetOpened{}
 	betContractAbi.UnpackIntoInterface(&betOpenedEvent, "BetOpened", vLog.Data)
 
@@ -33,7 +34,7 @@ func BetInitializedHandler(vLog types.Log) {
 
 	err = db.PostgresDBGlobalInstance.CreateBet(initBet)
 	if err != nil {
-		fmt.Println("Cannot insert bet: %s", err)
+		fmt.Printf("Cannot insert bet: %s", err)
 		os.Exit(1)
 	}
 

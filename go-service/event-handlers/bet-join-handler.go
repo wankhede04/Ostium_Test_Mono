@@ -18,17 +18,17 @@ import (
 func BetJoinHandler(vLog types.Log) {
 	betContractAbi, err := abi.JSON(strings.NewReader(bet.BetABI))
 	if err != nil {
-		fmt.Println("Cannot get abi of contract: %s", err)
+		fmt.Printf("Cannot get abi of contract: %s", err)
 		os.Exit(1)
 	}
+
 	betJoinedEvent := bet.BetBetJoined{}
 	betContractAbi.UnpackIntoInterface(&betJoinedEvent, "BetJoined", vLog.Data)
 
-	fmt.Println(betJoinedEvent.BetIndex.Uint64())
 	initBet, err := db.PostgresDBGlobalInstance.GetBetByID(betJoinedEvent.BetIndex.Uint64())
 
 	if err != nil {
-		fmt.Println("Cannot fetch bet from db: %s", err)
+		fmt.Printf("Cannot fetch bet from db: %s", err)
 		os.Exit(1)
 	}
 
@@ -36,7 +36,7 @@ func BetJoinHandler(vLog types.Log) {
 
 	err = db.PostgresDBGlobalInstance.UpdateBet(initBet)
 	if err != nil {
-		fmt.Println("Cannot insert bet: %s", err)
+		fmt.Printf("Cannot insert bet: %s", err)
 		os.Exit(1)
 	}
 

@@ -1,18 +1,21 @@
 {
     "db": {
-        "host": "<host>",
+        "host": "localhost",
         "port": "5432",
         "ssl_mode": "disable",
         "driver": "postgres",
         "db_name": "postgres",
-        "user": "<user>",
-        "password": "<password>"
+        "user": "postgres",
+        "password": "qod@123"
     },
     "monitor_bot": {
-        "private_key": ""
+        "private_key_liquidator": "ec02995cbf41e5971619117c6aaa9f55cb46d085eff3deb963e7d9f1c92ea683",
+        "public_key_liquidator": "0xE8eADfc7a6186a0c16FA94Ea93EC618897AB071E",
+        "contract": "0x5e01F296B26743BEFeD9A213426f593E04346ca3",
+        "rpc": "wss://sepolia.infura.io/ws/v3/52de0dea37b94c4684910ca92e127cf3"
     },
     "watcher": {
-        "rpc": "<your-rpc-url>",
+        "rpc": "wss://sepolia.infura.io/ws/v3/52de0dea37b94c4684910ca92e127cf3",
         "contract": "0x5e01F296B26743BEFeD9A213426f593E04346ca3"
     }
 }

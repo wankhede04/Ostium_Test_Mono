@@ -22,12 +22,12 @@ func InitializeDB() {
 	dbURL := "host=" + dBConfig.Host + " user=" + dBConfig.User + " password=" + dBConfig.Password + " dbname=" + dBConfig.Name + " port=" + dBConfig.Port + " sslmode=disable TimeZone=Asia/Shanghai"
 	db, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
 	if err != nil {
-		fmt.Println("Error unable to open DB: %s", err)
+		fmt.Printf("Error unable to open DB: %s", err)
 		os.Exit(1)
 	}
 
 	if err := db.AutoMigrate(&models.Bet{}); err != nil {
-		fmt.Println("Failed to automigrate tables %s", err)
+		fmt.Printf("Failed to automigrate tables %s", err)
 		os.Exit(1)
 	}
 
