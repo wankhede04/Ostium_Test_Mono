@@ -64,7 +64,7 @@ contract BetTest is Test {
         uint32 closingTime = uint32(block.timestamp + utClosing);
         // Opening a bet and then joining it
         uint256 betIndex = _openBet(long, betAmount, expiry, closingTime, MOCK_ADDR_1);
-            // Increasing some time
+        // Increasing some time
         vm.warp(block.timestamp+joinTime);
         _joinBet(betIndex, betAmount, MOCK_ADDR_2);
     }
@@ -77,7 +77,7 @@ contract BetTest is Test {
         uint32 closingTime = uint32(block.timestamp + utClosing);
         // Opening a bet and then trying to join it after it has expired
         uint256 betIndex = _openBet(long, betAmount, expiry, closingTime, MOCK_ADDR_1);
-            // Increasing time to exceed expiry
+        // Increasing time to exceed expiry
         vm.warp(block.timestamp + joinTime);
 
         vm.startPrank(MOCK_ADDR_2);
@@ -88,27 +88,23 @@ contract BetTest is Test {
     }
 
     // Test the joining of a bet after it has been closed
-    function testJoinBetAfterBetClosed() public {
-        bool long = true;
-        uint64 betAmount = 1e18;
-        uint32 expiry = uint32(block.timestamp + UNIT_TEST_EXPIRY_TIME);
-        uint32 closingTime = uint32(block.timestamp + UNIT_TEST_CLOSING_TIME);
-        // Opening a bet, joining it and then trying to join it again after it has been closed
+    function testJoinBetAfterBetClosed(bool long, uint32 betAmount, uint16 utExpiry, uint16 utClosing, uint joiningTime) public {
+        vm.assume(betAmount>0);
+        vm.assume(utExpiry<utClosing && joiningTime<utExpiry);
+        uint32 expiry = uint32(block.timestamp + utExpiry);
+        uint32 closingTime = uint32(block.timestamp + utClosing);
+        // Opening a bet, joining it and then closing it
         uint256 betIndex = _openBet(long, betAmount, expiry, closingTime, MOCK_ADDR_1);
-
         // Increasing some time
-        vm.warp(block.timestamp + 1000);
-
+        vm.warp(block.timestamp + joiningTime);
         uint256 openingPrice = _joinBet(betIndex, betAmount, MOCK_ADDR_2);
-
         // Increasing time to exceed closingTime
-        vm.warp(block.timestamp + UNIT_TEST_CLOSING_TIME);
-
+        vm.warp(block.timestamp + utClosing);
         _closeBet(betIndex, openingPrice, betAmount, MOCK_ADDR_1, MOCK_ADDR_2, long);
-
+        // Trying to join a already closed bet
         vm.startPrank(MOCK_ADDR_2);
         usdc.approve(address(escrow), betAmount);
-        vm.expectRevert(); // bet expired
+        vm.expectRevert("Bet expired"); // bet expired
         bet.joinBet(betIndex);
         vm.stopPrank();
     }
@@ -130,40 +126,37 @@ contract BetTest is Test {
     }
 
     // Test the closing of a bet after it has been closed
-    function testCLoseBetAfterBetClosed() public {
-        bool long = true;
-        uint64 betAmount = 1e18;
-        uint32 expiry = uint32(block.timestamp + UNIT_TEST_EXPIRY_TIME);
-        uint32 closingTime = uint32(block.timestamp + UNIT_TEST_CLOSING_TIME);
+    function testCLoseBetAfterBetClosed(bool long, uint32 betAmount, uint16 utExpiry, uint16 utClosing, uint joiningTime) public {
+        vm.assume(betAmount>0);
+        vm.assume(utExpiry<utClosing && joiningTime<utExpiry);
+        uint32 expiry = uint32(block.timestamp + utExpiry);
+        uint32 closingTime = uint32(block.timestamp + utClosing);
+        // Opening a bet, joining it and then closing it
         uint256 betIndex = _openBet(long, betAmount, expiry, closingTime, MOCK_ADDR_1);
-
         // Increasing some time
-        vm.warp(block.timestamp + 1000);
-
+        vm.warp(block.timestamp + joiningTime);
         uint256 openingPrice = _joinBet(betIndex, betAmount, MOCK_ADDR_2);
-
         // Increasing time to exceed closingTime
-        vm.warp(block.timestamp + UNIT_TEST_CLOSING_TIME);
-
+        vm.warp(block.timestamp + utClosing);
         _closeBet(betIndex, openingPrice, betAmount, MOCK_ADDR_1, MOCK_ADDR_2, long);
-
+        // Trying to join a already closed bet
         vm.startPrank(MOCK_ADDR_2);
-        vm.expectRevert(); // bet not active
+        vm.expectRevert("Bet not active"); // bet not active
         bet.closeBet(betIndex);
         vm.stopPrank();
     }
 
-     function _openBet(bool long, uint64 betAmount, uint32 expiry, uint32 closingTime, address maker) internal returns(uint256) {
-         if(expiry>closingTime){
-             vm.startPrank(maker);
-             usdc.approve(address(escrow), betAmount);
-             vm.expectRevert("Expiration time should be less than or equal to closing time");
-             bet.openBet(long, betAmount, expiry, closingTime);
-             vm.stopPrank();
-             return 0;
-         }
-         uint256 length = bet.totalBets();
-         uint256 userBalanceBefore = usdc.balanceOf(maker);
+    function _openBet(bool long, uint64 betAmount, uint32 expiry, uint32 closingTime, address maker) internal returns(uint256) {
+        if(expiry>closingTime){
+            vm.startPrank(maker);
+            usdc.approve(address(escrow), betAmount);
+            vm.expectRevert("Expiration time should be less than or equal to closing time");
+            bet.openBet(long, betAmount, expiry, closingTime);
+            vm.stopPrank();
+            return 0;
+        }
+        uint256 length = bet.totalBets();
+        uint256 userBalanceBefore = usdc.balanceOf(maker);
         uint256 expectedDecreaseInBalance = betAmount;
         vm.startPrank(maker);
         usdc.approve(address(escrow), betAmount);
@@ -178,9 +171,9 @@ contract BetTest is Test {
             "USDC balance after closing bet is not correct"
         );
         return length;
-     }
+    }
 
-     function _joinBet(uint256 betIndex, uint64 betAmount, address taker) internal returns(uint256) {
+    function _joinBet(uint256 betIndex, uint64 betAmount, address taker) internal returns(uint256) {
         int256 price = 1e21;
         priceFeed.storePrice(price);
         uint256 userBalanceBefore = usdc.balanceOf(taker);
@@ -198,9 +191,9 @@ contract BetTest is Test {
             "USDC balance after closing bet is not correct"
         );
         return uint256(price);
-     }
+    }
 
-     function _closeBet(uint256 betIndex, uint256 openingPrice, uint64 betAmount, address maker, address taker, bool isMakerLong) internal {
+    function _closeBet(uint256 betIndex, uint256 openingPrice, uint64 betAmount, address maker, address taker, bool isMakerLong) internal {
         uint256 price = 2e21;
         priceFeed.storePrice(int256(price));
         address winner;
@@ -221,5 +214,5 @@ contract BetTest is Test {
             winnerBalanceBefore + expectedBalanceIncrease,
             "USDC balance after closing bet is not correct"
         );
-     }
+    }
 }
