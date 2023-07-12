@@ -46,7 +46,8 @@ Openzepplin v 4.9.2
 ## Development Setup: Go - Service and Bet Completion Bot 
 Go to : [Go Service](./go-service/README.md)
 
---
+***
+
 ## Limitations of this betting system. 
 The following points discuss the limitation of the current betting system and potential ideas and changes to the architecture that would make this betting platform more interesting, and liquid, and offer more accurate pricing.
 
