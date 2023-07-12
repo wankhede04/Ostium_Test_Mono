@@ -42,3 +42,6 @@ Solidity v0.8.17: The project's smart contracts are written in Solidity.
 Foundry
 Chainlink contract 0.8
 Openzepplin v 4.9.2
+
+## Development Setup : Go - Service and Bet Completion Bot 
+Go to : [Go Service](./go-service/README.md)
