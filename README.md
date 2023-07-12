@@ -66,6 +66,8 @@ Currently, the bet closing time is set when the bet is made. Implementing an opt
 ### Lack of Leveraged Betting: 
 Allowing leveraged betting could make the platform more appealing to certain traders. This would allow users to multiply their potential winnings (and losses) by betting more than they have in their accounts.
 
+***
+
 **In order to transform this simple betting system with more sophisticated futures, there are several key features and improvements to consider:**
 
 ### Leverage:
