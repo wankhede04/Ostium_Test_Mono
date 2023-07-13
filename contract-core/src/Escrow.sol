@@ -11,11 +11,11 @@ contract Escrow is Ownable{
         USDC = IERC20(_USDC);
     }
 
-    function deposit(address depositor, uint64 amount) external onlyOwner{
+    function deposit(address depositor, uint256 amount) external onlyOwner{
         USDC.transferFrom(depositor, address(this), amount);
     }
 
-    function release(address recipient, uint128 amount) external onlyOwner{
+    function release(address recipient, uint256 amount) external onlyOwner{
         require(USDC.balanceOf(address(this)) >= amount, "Insufficient deposit");
         USDC.transfer(recipient, amount);
     }

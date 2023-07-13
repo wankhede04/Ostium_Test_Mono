@@ -3,6 +3,7 @@ pragma solidity 0.8.17;
 
 import "chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "./Escrow.sol";
+import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 /**
  * @title Bet Contract
@@ -11,7 +12,7 @@ import "./Escrow.sol";
  * The bet amount, expiration time, closing time and other bet parameters are captured in a struct.
  * The contract uses Chainlink Price Feeds for getting the BTC/USD price and ERC20 token (USDC) for betting.
  */
-contract Bet {
+contract Bet is Ownable{
     struct BetStruct {
         address userA; // Address of User A - 160 bits
         address userB; // Address of User B - 160 bits
@@ -32,6 +33,8 @@ contract Bet {
     // Array of all bets
     BetStruct[] public bets;
 
+    uint256 public callerRewardPercentage = 1e16;  // 1% initially, represented in a fixed-point format where 1e18 is 100%
+
     event BetOpened(uint256 betIndex, address indexed userA, uint64 betAmount, bool isLong, uint32 expirationTime, uint32 closingTime);
     event BetJoined(uint256 betIndex, address indexed userB, uint256 openPrice);
     event BetClosed(uint256 betIndex, address indexed winner, uint256 closePrice);
@@ -39,6 +42,11 @@ contract Bet {
     constructor(address _priceFeed, address _USDC) {
         priceFeed = AggregatorV3Interface(_priceFeed);
         escrow = new Escrow(_USDC);
+    }
+
+    function setCallerRewardPercentage(uint256 newPercentage) external onlyOwner {
+        require(newPercentage <= 1e18, "Reward percentage cannot be more than 100%");
+        callerRewardPercentage = newPercentage;
     }
 
     /**
@@ -84,6 +92,11 @@ contract Bet {
      * @dev Closes a bet, sends the funds to the winner
      * @param betIndex Index of the bet to close in the `bets` array
      */
+    function setCallerRewardPercentage(uint256 newPercentage) external onlyOwner {
+        require(newPercentage <= 1e18, "Reward percentage cannot be more than 100%");
+        callerRewardPercentage = newPercentage;
+    }
+
     function closeBet(uint256 betIndex) external {
         BetStruct storage bet = bets[betIndex];
 
@@ -92,13 +105,24 @@ contract Bet {
 
         (, int256 price,,,) = priceFeed.latestRoundData();
         uint256 closePrice = uint256(price);
+        uint256 callerReward = bet.betAmount * 2 * callerRewardPercentage / 1e18;  // Calculate the caller's reward based on the percentage
+        uint256 payout = bet.betAmount * 2 - callerReward;  // The remaining after subtracting the caller's reward
 
-        address winner = closePrice > bet.btcOpenPrice ? (bet.isLong ? bet.userA : bet.userB) : (bet.isLong ? bet.userB : bet.userA);
+        if(closePrice == bet.btcOpenPrice) {
+            // Draw case, return betAmount to each user
+            escrow.release(bet.userA, bet.betAmount - callerReward/2); // deduct half of the caller reward from each user
+            escrow.release(bet.userB, bet.betAmount - callerReward/2);
+        } else {
+            // Normal case, winner takes all (after subtracting the caller's reward)
+            address winner = closePrice > bet.btcOpenPrice ? (bet.isLong ? bet.userA : bet.userB) : (bet.isLong ? bet.userB : bet.userA);
+            escrow.release(winner, payout);
+            emit BetClosed(betIndex, winner, closePrice);
+        }
 
-        escrow.release(winner, bet.betAmount * 2);
+        // Reward the caller
+        escrow.release(msg.sender, callerReward);
+
         bet.active = false;
-
-        emit BetClosed(betIndex, winner, closePrice);
     }
 
     /**
