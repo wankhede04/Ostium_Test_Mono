@@ -27,7 +27,7 @@ func InitializeWatcher(wg *sync.WaitGroup) {
 
 	contractAddress := common.HexToAddress(config.Contract)
 	query := ethereum.FilterQuery{
-		FromBlock: big.NewInt(3870791),
+		FromBlock: big.NewInt(config.BlockNumber),
 		Addresses: []common.Address{contractAddress},
 	}
 
